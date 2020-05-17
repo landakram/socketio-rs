@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use uuid::Uuid;
+use warp::http::StatusCode;
 use warp::Filter;
 
 #[tokio::main]
@@ -90,7 +91,7 @@ struct HandshakeResponse {
 async fn on_poll(
     args: SessionArgs,
     socket_store: Arc<impl crate::store::SocketStore>,
-) -> Result<impl warp::Reply, warp::Rejection> {
+) -> Result<Box<dyn warp::Reply>, warp::Rejection> {
     let sid = args.sid;
     match socket_store.get(sid).await {
         Some(socket) => {
@@ -98,9 +99,9 @@ async fn on_poll(
                 sid: socket.sid.clone(),
                 t: "poll".to_string(),
             };
-            Ok(warp::reply::json(&res))
+            Ok(Box::new(warp::reply::json(&res)))
         }
-        None => Err(warp::reject::not_found()),
+        None => Ok(Box::new(StatusCode::NOT_FOUND)),
     }
 }
 
